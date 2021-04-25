@@ -7,6 +7,7 @@ use App\Traits\ApiResponser;
 use Illuminate\Http\Request;
 use DB;
 
+
 Class UserController extends Controller {
     use ApiResponser;
 
@@ -25,11 +26,28 @@ Class UserController extends Controller {
     
     }
 
-    public function index(){
+    public function index(Request $request){
 
-        $users = User::all();
-        return $this->successResponse($users);
+        $username = $request->input('username');
+        $password = $request->input('password');
 
+        $users1 = DB::connection('mysql')->select("SELECT * FROM `tbluser` WHERE `username` LIKE '$username' AND `password` LIKE '$password'");
+
+        if($users1){
+            
+            $user = User::where('username',$username)->first();
+            return $this->successResponse($user);
+            
+        }elseif($username==null&&$password==null){
+
+            $users = User::all();
+            return $this->successResponse($users);
+
+        }else{
+
+            return "Invalid username and password";
+
+        }
     }
 
     public function addUser(Request $request ){
@@ -42,25 +60,17 @@ Class UserController extends Controller {
 
         $this->validate($request,$rules);
         $user = User::create($request->all());
-        return $this->successResponse($user,
-        Response::HTTP_CREATED);
+        return $this->successResponse($user,Response::HTTP_CREATED);
     }
 
         /**
         * Obtains and show one user
         * @return Illuminate\Http\Response
         */
-
+    
     public function show($id){
-        
-        //$user = User::findOrFail($id);
-        $user = User::where('userid', $id)->first();
-        if($user){
-            return $this->successResponse($user);
-        }
-        {
-            return $this->errorResponse('User ID does not exist', Response::HTTP_NOT_FOUND);
-        }
+
+        $user = User::findOrFail($id);
         return $this->successResponse($user);
 
     }
@@ -80,25 +90,17 @@ Class UserController extends Controller {
 
         $this->validate($request, $rules);
 
-        //$user = User::findOrFail($id);
-        $user = User::where('userid', $id)->first();
+        $user = User::findOrFail($id);
+        $user->fill($request->all());
 
-        if($user){
-            $user->fill($request->all());
-    
-            if ($user->isClean()) {
+        if ($user->isClean()) {
 
-                return $this->errorResponse('At least one value must
-                change', Response::HTTP_UNPROCESSABLE_ENTITY);
-
-            }
-
-            $user->save();
-            return $this->successResponse($user);
+            return $this->errorResponse('At least one value must change', Response::HTTP_UNPROCESSABLE_ENTITY);
+       
         }
-        {
-            return $this->errorResponse('User ID does not exist', Response::HTTP_NOT_FOUND);
-        }
+
+        $user->save();
+        return $this->successResponse($user);
        
     }
 
@@ -109,19 +111,9 @@ Class UserController extends Controller {
 
     public function delete($id){
 
-        //$user = User::findOrFail($id);
-        $user = User::where('userid',$id)->first();
-        
-        if($user){
-
-            $user->delete();
-            return $this->successResponse($user);
-        }
-        {
-            return $this->errorResponse('User ID does not exist', Response::HTTP_NOT_FOUND);
-        }
-
-        
+        $user = User::findOrFail($id);
+        $user->delete();
+        return $this->successResponse($user);    
     
     }
 
